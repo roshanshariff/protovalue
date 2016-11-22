@@ -159,36 +159,29 @@ class Application (tk.Frame):
         self._pvfs = GridWorldPVF(self._gridworld)
         self._pvfselect.config(to=len(self._pvfs))
         self._eigselect.config(to=self._pvfs.max_eigval())
-        self.show_pvf(self._current_pvf)
+        self.show_pvf(self._current_pvf, force_redraw=True)
 
-    def show_pvf (self, index):
-        index %= len(self._pvfs)
-        self._current_pvf = index
+    def show_pvf (self, index, force_redraw=False):
         (eigval, pvf) = self._pvfs[index]
-        print("{}/{}: eigval = {}".format(index+1, len(self._pvfs), eigval))
         self._set_eigselect(eigval)
-        self._paint_cells(pvf)
-
-    def _set_sliders (self, index, eigval):
-        print('<-set_sliders({}, {})'.format(repr(index), repr(eigval)))
+        if self._current_pvf != index or force_redraw:
+            self._current_pvf = index
+            self._paint_cells(pvf)
 
     def _handle_pvfselect (self, index):
         self.show_pvf(int(index) - 1)
 
     def _handle_eigselect (self, eigval):
-        if not self._handle_eigselect_enabled:
-            return
         index = self._pvfs.eigval_index(float(eigval))
-        if int(self._pvfselect.get()) != index + 1:
-            self._pvfselect.set(index + 1)
+        eigval = self._pvfs[index][0]
+        self._eigselect.set(eigval)
+        self._pvfselect.set(index + 1)
 
     def _set_eigselect (self, eigval):
-        self._handle_eigselect_enabled = False
+        handler = self._eigselect.cget('command')
+        self._eigselect.config(command='')
         self._eigselect.set(eigval)
-
-        def reenable ():
-            self._handle_eigselect_enabled = True
-        self.after_idle(reenable)
+        self.after_idle(lambda: self._eigselect.config(command=handler))
 
     def _handle_set_cell (self, event, active):
         (x, y) = (event.x // self._cell_size, event.y // self._cell_size)
